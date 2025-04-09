@@ -6,14 +6,15 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.97"
 clap = { version = "4.5.35", features = ["derive"] }
-octocrab = { version = "0.44.0", features = ["rustls"] }
+colored = "3.0.0"
+octocrab = "0.44.0"
 prettyplease = "0.2.32"
 proc-macro2 = "1.0.94"
 quote = "1.0.40"
-reqwest = { version = "0.12.15", features = ["rustls-tls"] }
+reqwest = "0.12.15"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
-spinoff = { version = "0.8.0", default-features = false, features = ["dots"] }
+spinoff = { version = "0.8.0", default-features = false }
 syn = "2.0.100"
 tempfile = "3.19.1"
 tokio = { version = "1.44.2", features = ["rt-multi-thread", "macros"] }

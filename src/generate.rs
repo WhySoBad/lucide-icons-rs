@@ -4,7 +4,47 @@ use anyhow::Context;
 use quote::quote;
 use syn::LitChar;
 
-use crate::IconInfo;
+use crate::info::IconInfo;
+
+pub fn generate_cargo_toml(name: &str, version: &str) -> String {
+    format!(
+        r"
+[package]
+name = '{name}'
+version = '{version}'
+edition = '2024'
+
+[features]
+default = []
+iced = ['dep:iced']
+
+[dependencies]
+iced = {{ version = '*', optional = true }}
+"
+    ).trim().to_string()
+}
+
+pub fn generate_library() -> anyhow::Result<String> {
+    let output = quote! {
+        #[cfg(feature = "iced")]
+        pub mod iced;
+        mod icon;
+        pub use crate::icon::Icon;
+
+        /// Bytes of the lucide font
+        ///
+        /// Always use this font when relying on the icons of this crate as it may be
+        /// that the system installation of the font has a different version than the
+        /// one used by this crate
+        pub fn lucide_font_bytes() -> &'static [u8] {
+            include_bytes!("../lucide.ttf")
+        }
+    };
+
+    let file_str =
+        prettyplease::unparse(&syn::parse2(output).context("Output should be valid TokenStream")?);
+    Ok(file_str)
+}
 
 pub fn generate_icons_enum(icons: &BTreeMap<String, IconInfo>) -> anyhow::Result<String> {
     let (names, variant_names, unicodes) = icons
@@ -78,7 +118,8 @@ pub fn generate_icons_enum(icons: &BTreeMap<String, IconInfo>) -> anyhow::Result
         }
     };
 
-    let file_str = prettyplease::unparse(&syn::parse2(output).context("Output should be valid TokenStream")?);
+    let file_str =
+        prettyplease::unparse(&syn::parse2(output).context("Output should be valid TokenStream")?);
 
     Ok(file_str)
 }
@@ -109,13 +150,14 @@ pub fn generate_iced_icons(icons: &BTreeMap<String, IconInfo>) -> anyhow::Result
         use iced::widget::text;
 
         fn base_icon<'a>(icon: char) -> iced::widget::Text<'a> {
-            text(icon.to_string())
+            text(icon.to_string()).font(iced::Font::with_name("LucideIcons"))
         }
 
         #(#functions)*
     };
 
-    let file_str = prettyplease::unparse(&syn::parse2(output).context("Output should be valid TokenStream")?);
+    let file_str =
+        prettyplease::unparse(&syn::parse2(output).context("Output should be valid TokenStream")?);
 
     Ok(file_str)
 }
