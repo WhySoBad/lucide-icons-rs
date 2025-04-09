@@ -1,86 +1,54 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, io::Read, path::Path, process::exit};
 
-use quote::quote;
+use anyhow::{anyhow, Context};
+use clap::Parser;
+use cli::Cli;
+use reqwest::Client;
 use serde::Deserialize;
-use syn::LitChar;
+use spinoff::spinners;
+use tempfile::{tempdir, TempDir};
+use zip::ZipArchive;
 
 mod cli;
+mod codegen;
+mod github;
 
-fn main() {
-    let icon_str = std::fs::read_to_string("info.json").expect("should read font info.json");
-    let icons: BTreeMap<String, IconInfo> =
-        serde_json::from_str(&icon_str).expect("should deserialize font icon infos");
+#[tokio::main]
+async fn main() {
+    let cli = Cli::parse();
+    let mut pb = spinoff::Spinner::new(spinners::Dots, "", None);
 
-    let (names, variant_names, unicodes) = icons
-        .iter()
-        .map(|(key, icon)| {
-            let name = syn::Ident::new(
-                &key.split('-').map(|part| {
-                    let mut chars = part.chars();
-                    match chars.next() {
-                        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
-                        None => String::new(),
-                    }
-                }).collect::<String>(),
-                proc_macro2::Span::call_site(),
-            );
-            let unicode = syn::Lit::Char(LitChar::new(icon.unicode(), proc_macro2::Span::call_site()));
+    pb.update_text("Getting lucide github release");
+    let asset_url = get_lucide_release_asset_url(&cli.tag).await.spinner(&mut pb);
+    pb.update_text("Downloading asset from github release");
+    let asset_dir = download_font_asset(&asset_url).await.spinner(&mut pb);
+    pb.update_text("Extracting and parsing files from archive");
+    let (icons, font_bytes) = extract_archive_files(asset_dir).spinner(&mut pb);
 
-            (key.clone(), name, unicode)
-        })
-        .collect::<(Vec<_>, Vec<_>, Vec<_>)>();
+    pb.update_text("Generating icons enum code");
+    let icons_enum = codegen::generate_icons_enum(&icons).spinner(&mut pb);
+    pb.update_text("Generating iced icons code");
+    let iced_icons = codegen::generate_iced_icons(&icons).spinner(&mut pb);
 
-    let variants = names.iter().zip(variant_names.iter()).map(|(name, variant)| {
-        let doc_msg = format!("[{}](https://lucide.dev/icons/{}) icon", name, name);
-        quote! {
-            #[doc = #doc_msg]
-            #variant
-        }
-    }).collect::<Vec<_>>();
+    let out_dir = Path::new(&cli.output);
+    if !out_dir.exists() {
+        std::fs::create_dir_all(out_dir).context("Unable to create output directory").spinner(&mut pb);
+    } else if !out_dir.is_dir() {
+        Err(anyhow!("Output directory is not a directory")).spinner(&mut pb)
+    }
 
-    let output = quote! {
-        #[derive(Debug)]
-        pub enum Icon {
-            #(#variants),*
-        }
+    std::fs::write(out_dir.join("icons.rs"), &icons_enum).context("Unable to write icons.rs").spinner(&mut pb);
+    std::fs::write(out_dir.join("iced.rs"), &iced_icons).context("Unable to write iced.rs").spinner(&mut pb);
+    std::fs::write(out_dir.join("lucide.ttf"), font_bytes).context("Unable to write lucide.ttf").spinner(&mut pb);
 
-        impl Icon {
-            /// Unicode character of an icon
-            pub fn unicode(&self) -> char {
-                match self {
-                    #(Self::#variant_names => #unicodes),*
-                }
-            }
-
-            /// Get an icon from it's name
-            ///
-            /// The names need to be all-lowercase-dashed (e.g. `app-window`)
-            pub fn from_name(icon_name: &str) -> Option<Self> {
-                match icon_name {
-                    #(#names => Some(Icon::#variant_names)),*,
-                    &_ => None
-                }
-            }
-        }
-
-        impl std::fmt::Display for Icon {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                let name = match self {
-                    #(Self::#variant_names => #names),*
-                };
-                write!(f, "{name}")
-            }
-        }
-    };
-
-    let str = prettyplease::unparse(&syn::parse2(output).expect("should be valid token stream"));
-    std::fs::write("out.rs", &str).expect("should write out.rs")
+    let current_dir = std::env::current_dir().unwrap_or_default().join(&cli.output);
+    pb.success(&format!("Successfully wrote library to {}", current_dir.to_string_lossy()));
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[allow(unused)]
-struct IconInfo {
+pub struct IconInfo {
     encoded_code: String,
     prefix: String,
     class_name: String,
@@ -89,7 +57,66 @@ struct IconInfo {
 
 impl IconInfo {
     pub fn unicode(&self) -> char {
-        let bytes = u16::from_str_radix(&self.encoded_code.as_str()[1..], 16).expect("should parse icon unicode as u16");
+        let bytes = u16::from_str_radix(&self.encoded_code.as_str()[1..], 16)
+            .expect("should parse icon unicode as u16");
         char::from_u32(bytes as u32).expect("should be a vaild unicode character")
+    }
+}
+
+async fn get_lucide_release_asset_url(tag: &str) -> anyhow::Result<String> {
+    let octocrab = octocrab::instance();
+    let release = octocrab
+        .repos("lucide-icons", "lucide")
+        .releases()
+        .get_by_tag(tag)
+        .await
+        .context("Unable to get release by tag")?;
+
+    let asset = release.assets.into_iter().find(|asset| {
+        asset.name.starts_with("lucide-font") && asset.content_type == "application/zip"
+    }).context("No lucide-font release asset found")?;
+
+    Ok(asset.browser_download_url.to_string())
+}
+
+async fn download_font_asset(url: &str) -> anyhow::Result<tempfile::TempDir> {
+    let response = Client::new().get(url).send().await.context("Unable to download font asset")?;
+    let bytes = response.bytes().await.context("Unable to get font asset bytes")?;
+
+    let tmpdir = tempdir().context("Unable to create font asset temporary directory")?;
+    std::fs::write(tmpdir.path().join("font.zip"), bytes).context("Unable to write font asset to temporary directory")?;
+
+    Ok(tmpdir)
+}
+
+fn extract_archive_files(dir: TempDir) -> anyhow::Result<(BTreeMap<String, IconInfo>, Vec<u8>)> {
+    let zip_file = std::fs::File::open(dir.path().join("font.zip")).context("Unable to open font zip file")?;
+    let mut archive = ZipArchive::new(&zip_file).context("Unable to parse zip archive")?;
+
+    let font_file = archive.by_name("lucide-font/lucide.ttf").context("Unable to find font file in archive")?;
+    let font_bytes = font_file.bytes().collect::<std::io::Result<Vec<_>>>().context("Unable to read font bytes")?;
+
+    let mut info_file = archive.by_name("lucide-font/info.json").context("Unable to find font info file in archive")?;
+    let mut icons_str = String::new();
+    info_file.read_to_string(&mut icons_str).context("Unable to read font info file")?;
+    let icons: BTreeMap<String, IconInfo> =
+        serde_json::from_str(&icons_str).context("Unable to deserialize font info file")?;
+
+    Ok((icons, font_bytes))
+}
+
+trait ExtPrintAndExit<T> {
+    fn spinner(self, spinner: &mut spinoff::Spinner) -> T;
+}
+
+impl<T> ExtPrintAndExit<T> for anyhow::Result<T> {
+    fn spinner(self, spinner: &mut spinoff::Spinner) -> T {
+        match self {
+            Ok(val) => val,
+            Err(err) => {
+                spinner.fail(&format!("{err}"));
+                exit(1)
+            },
+        }
     }
 }
