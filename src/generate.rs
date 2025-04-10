@@ -8,7 +8,7 @@ use crate::info::IconInfo;
 
 pub fn generate_cargo_toml(name: &str, version: &str) -> String {
     format!(
-        r"
+        r##"
 [package]
 name = '{name}'
 version = '{version}'
@@ -17,19 +17,24 @@ edition = '2024'
 [features]
 default = []
 iced = ['dep:iced']
+iced-cosmic = ['dep:iced_cosmic']
 
 [dependencies]
 iced = {{ version = '*', optional = true }}
-"
+iced_cosmic = {{ git = "https://github.com/pop-os/iced", package = "iced", optional = true }}
+"##
     ).trim().to_string()
 }
 
 pub fn generate_library() -> anyhow::Result<String> {
     let output = quote! {
-        #[cfg(feature = "iced")]
+        #[cfg(any(feature = "iced", feature = "iced-cosmic"))]
         pub mod iced;
         mod icon;
         pub use crate::icon::Icon;
+
+        #[cfg(all(feature = "iced", feature = "iced-cosmic"))]
+        compile_error!("feature \"iced\" and feature \"iced-cosmic\" cannot be enabled at the same time");
 
         /// Bytes of the lucide font
         ///
@@ -147,10 +152,13 @@ pub fn generate_iced_icons(icons: &BTreeMap<String, IconInfo>) -> anyhow::Result
         .collect::<Vec<_>>();
 
     let output = quote! {
+        #[cfg(feature = "iced-cosmic")]
+        use iced_cosmic as iced;
+
         use iced::widget::text;
 
         fn base_icon<'a>(icon: char) -> iced::widget::Text<'a> {
-            text(icon.to_string()).font(iced::Font::with_name("LucideIcons"))
+            text(icon.to_string()).font(iced::Font::with_name("lucide"))
         }
 
         #(#functions)*
