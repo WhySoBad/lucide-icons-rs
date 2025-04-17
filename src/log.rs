@@ -8,7 +8,6 @@ pub struct Logger {
 
 impl Logger {
     pub fn new() -> Self {
-
         let frames = spinner!(["[-]", "[\\]", "[|]", "[/]"], 100);
         let spinner = Spinner::new(frames, "", None);
 
@@ -21,7 +20,6 @@ impl Logger {
         }
         print!("[ ] {text}");
         self.current_text = Some(text.to_string());
-        // self.spinner.update_text(text.to_string());
     }
 
     pub fn fail(&mut self, text: String) {
@@ -45,6 +43,7 @@ impl Logger {
 }
 
 pub trait ExtPrintAndExit<T> {
+    /// Unwrap the result or log an error and exit
     fn unwrap_or_exit(self, logger: &mut Logger) -> T;
 }
 
