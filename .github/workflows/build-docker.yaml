@@ -33,13 +33,12 @@ jobs:
         id: meta
         with:
           images: ghcr.io/${{ github.repository_owner }}/lucide-icons
+          tags: type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: |
-            ${{ steps.meta.outputs.tags }}
-            ghcr.io/${{ github.repository_owner }}/lucide-icons:latest
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
