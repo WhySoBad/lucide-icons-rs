@@ -49,11 +49,16 @@ async fn main() {
     }
 
     logger.next("Generating Cargo.toml");
-    let cargo_toml = generate::generate_cargo_toml(&cli.name, &cli.tag);
+    let cargo_toml = generate::generate_cargo_toml(&cli);
+    logger.next("Generating README.md");
+    let readme_md = generate::generate_readme(&cli.name, &cli.tag);
 
     logger.next("Writing output files");
     std::fs::write(out_dir.join("Cargo.toml"), &cargo_toml)
         .context("Unable to write Cargo.toml")
+        .unwrap_or_exit(&mut logger);
+    std::fs::write(out_dir.join("README.md"), &readme_md)
+        .context("Unable to write README.md")
         .unwrap_or_exit(&mut logger);
     std::fs::write(out_src_dir.join("icon.rs"), &icons_rs)
         .context("Unable to write icon.rs")
@@ -72,8 +77,12 @@ async fn main() {
         .unwrap_or_default()
         .join(&cli.output);
 
-    logger.finish(format!("Wrote library {} with version {} to {}", cli.name, cli.tag, current_dir.to_string_lossy()));
-
+    logger.finish(format!(
+        "Wrote library {} with version {} to {}",
+        cli.name,
+        cli.tag,
+        current_dir.to_string_lossy()
+    ));
 }
 
 async fn get_lucide_release_asset_url(tag: &str) -> anyhow::Result<String> {

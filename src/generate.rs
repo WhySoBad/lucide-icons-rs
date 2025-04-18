@@ -4,15 +4,94 @@ use anyhow::Context;
 use quote::quote;
 use syn::LitChar;
 
-use crate::info::IconInfo;
+use crate::{cli::Cli, info::IconInfo};
 
-pub fn generate_cargo_toml(name: &str, version: &str) -> String {
+pub fn generate_readme(name: &str, version: &str) -> String {
+    let lib_name = name.replace('-', "_");
+    format!(
+r#####"
+
+# {name}
+
+Auto-generated rust icon definitions for [lucide icons](https://github.com/lucide-icons/lucide) [version {version}](https://github.com/lucide-icons/lucide/releases/tag/{version})
+
+The library provides an `Icon` enum which contains all lucide icon variants:
+
+```rust
+use {lib_name}::Icon;
+
+let icon = Icon::Anvil;
+assert_eq!(format!("{{icon}}"), String::from("anvil"));
+println!("unicode = {{}}", icon.unicode());
+
+```
+
+With the `iced` (or `iced-cosmic` if using the cosmic iced fork) feature the library also provides the icons as iced widgets:
+
+```rust
+use {lib_name}::lucide_font_bytes;
+use {lib_name}::iced::icon_anvil;
+
+// get font bytes for the bundled font
+let bytes = lucide_font_bytes();
+
+// add the font to iced
+let settings = iced::Settings {{ fonts: vec![bytes.into()], ..Default::default() }};
+
+fn view() -> iced::Element<'_, Message, Theme, iced::Renderer> {{
+    iced::widget::column![
+        icon_anvil()
+    ].into()
+}}
+
+```
+
+For more details have a look at the [generator repository page](https://github.com/WhySoBad/lucide-icons-rs/)
+
+"#####)
+    .trim().to_string()
+}
+
+fn vec_to_str(vec: &[String]) -> String {
+    let vec_str = vec
+        .iter()
+        .map(str_with_parens)
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("[{vec_str}]")
+}
+
+fn str_with_parens(str: &String) -> String {
+    format!(r#""{str}""#)
+}
+
+pub fn generate_cargo_toml(cli: &Cli) -> String {
+    let fields = vec![
+        ("name", Some(str_with_parens(&cli.name))),
+        ("description", Some(str_with_parens(&cli.description))),
+        ("version", Some(str_with_parens(&cli.tag))),
+        ("edition", Some(str_with_parens(&cli.edition.to_string()))),
+        ("authors", Some(vec_to_str(&cli.authors))),
+        ("categories", Some(vec_to_str(&cli.categories))),
+        ("keywords", Some(vec_to_str(&cli.keywords))),
+        ("homepage", cli.homepage_url.as_ref().map(str_with_parens)),
+        (
+            "repository",
+            cli.repository_url.as_ref().map(str_with_parens),
+        ),
+        ("readme", Some(str_with_parens(&cli.readme_path))),
+    ];
+
+    let package_str = fields
+        .iter()
+        .filter_map(|(key, value)| value.as_ref().map(|val| format!("{key} = {val}")))
+        .collect::<Vec<_>>()
+        .join("\n");
+
     format!(
         r##"
 [package]
-name = '{name}'
-version = '{version}'
-edition = '2024'
+{package_str}
 
 [features]
 default = []
@@ -22,8 +101,10 @@ iced-cosmic = ['dep:iced_cosmic']
 [dependencies]
 iced = {{ version = '*', optional = true }}
 iced_cosmic = {{ git = "https://github.com/pop-os/iced", package = "iced", optional = true }}
-"##
-    ).trim().to_string()
+"##,
+    )
+    .trim()
+    .to_string()
 }
 
 pub fn generate_library() -> anyhow::Result<String> {

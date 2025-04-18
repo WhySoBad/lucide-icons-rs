@@ -1,9 +1,9 @@
 use colored::Colorize;
-use spinoff::{spinner, spinners, Spinner};
+use spinoff::{Spinner, spinner, spinners};
 
 pub struct Logger {
     spinner: Spinner,
-    current_text: Option<String>
+    current_text: Option<String>,
 }
 
 impl Logger {
@@ -11,7 +11,10 @@ impl Logger {
         let frames = spinner!(["[-]", "[\\]", "[|]", "[/]"], 100);
         let spinner = Spinner::new(frames, "", None);
 
-        Self { spinner, current_text: None }
+        Self {
+            spinner,
+            current_text: None,
+        }
     }
 
     pub fn next(&mut self, text: &str) {
