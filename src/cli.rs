@@ -8,17 +8,25 @@ pub struct Cli {
     #[arg(long, short, default_value_t = String::from("out"))]
     pub output: String,
 
+    /// Version of the iced crate to use in the output library
+    #[arg(long, short, default_value_t = String::from("0.13"))]
+    pub iced_version: String,
+
     /// Name of the output library
     #[arg(long, short, default_value_t = String::from("lucide-icons"))]
     pub name: String,
 
     /// Description of the output library
-    #[arg(long, short, default_value_t = String::from("rust definitions for lucide-icons"))]
+    #[arg(long, short, default_value_t = String::from("Rust definitions for lucide-icons"))]
     pub description: String,
 
     /// Rust edition of the output library
     #[arg(long, short, value_enum, default_value_t = Edition::Year2024)]
     pub edition: Edition,
+
+    /// License of the output library
+    #[arg(long, short, default_value_t = String::from("MIT"))]
+    pub license: String,
 
     /// Categories of the output library
     #[arg(long, short, value_delimiter = ',', value_parser, default_values_t = vec!["gui"].into_iter().map(String::from).collect::<Vec<_>>())]

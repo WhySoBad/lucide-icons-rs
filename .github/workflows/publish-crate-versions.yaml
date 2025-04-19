@@ -1,0 +1,66 @@
+name: Publish Latest Lucide Versions
+
+on:
+  workflow_dispatch:
+
+env:
+  # token used to login to the crates.io registry
+  CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_API_TOKEN }}
+
+jobs:
+  versions:
+    runs-on: ubuntu:latest
+    outputs:
+      versions: ${{ steps.versions.outputs.value }}
+    steps:
+      - name: Install rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Get missing crate versions
+        id: versions
+        run: |
+          LATEST_CARGO_VERSION=$(cargo info lucide-icons -q | sed -n 's/^version: //p')
+          LUCIDE_RELEASES=$(gh release list --repo lucide-icons/lucide -L 25 --json tagName)
+          VERSIONS=""
+
+          echo "Latest crate version is $LATEST_CARGO_VERSION"
+
+          while IFS= read -r release_tag; do
+              if [[ "$release_tag" == "$LATEST_CARGO_VERSION" ]]; then
+                  echo "Found release matching latest crate version"
+                  break
+              fi
+
+              cargo info "lucide-icons@$release_tag" -q > /dev/null 2>&1
+              if [ $? -eq 0 ]; then
+                  echo "Found crate version for release $release_tag"
+              else
+                  echo "Missing crate version for tag $release_tag"
+                  VERSIONS="$VERSIONS $release_tag"
+              fi
+          done < <(echo "$LUCIDE_RELEASES" | jq -r '.[] | .tagName')
+
+          echo "value=$(echo $VERSIONS | jq -cR 'ltrimstr(" ") | split(" ")')" >> "$GITHUB_OUTPUT"
+
+  publish-crate-version:
+    needs: [ versions ]
+    runs-on: ubuntu:latest
+    strategy:
+      matrix:
+        version: ${{ fromJSON(needs.versions.outputs.versions) }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build crate version ${{ matrix.version }} in docker container
+        uses: addnab/docker-run-action@v3
+        with:
+          image: ghcr.io/whysobad/lucide-icons:latest
+          options: -v ${{ github.workspace }}/out:/app/out
+          run: lucide-icons -a "${{ github.repository_owner }}" -r https://github.com/${{ github.repository }} -w https://github.com/${{ github.repository }} ${{ matrix.version }}
+
+      - name: Publish new crate version
+        run: cargo publish --dry-run --manifest-path out/Cargo.toml

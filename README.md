@@ -11,9 +11,11 @@ The `lucide-icons` cli supports the following arguments
 | Argument         | Description                                      | Default value                                        |
 | ---------------- | ------------------------------------------------ | ---------------------------------------------------- |
 | `output`         | Directory where the library should be written to | `out`                                                |
+| `iced-version`   | Version of `iced` to use in the output library   | `0.13`                                               |
 | `name`           | Name of the output library                       | `lucide-icons`                                       |
 | `description`    | Description of the output library                | `rust definitions for lucide-icons`                  |
 | `edition`        | Rust edition of the output library               | `2024`                                               |
+| `license`        | License of the output library                    | `MIT`                                                |
 | `categories`     | Categories of the output library                 | `["gui"]`                                            |
 | `keywords`       | Keywords of the output library                   | `["lucide-icons", "lucide", "icon", "iced", "font"]` |
 | `homepage-url`   | Url to the output library homepage               | _none_                                               |
@@ -64,7 +66,7 @@ use lucide_icons::lucide_font_bytes;
 let font_bytes = lucide_font_bytes();
 ```
 
-The library also has the optional `iced` (or `iced-cosmic`) feature which also provides lucide icons as pre-defined iced widgets:
+The library also has the optional `iced` feature which also provides lucide icons as pre-defined iced widgets:
 
 ```rust
 use lucide_icons::iced::icon_anvil;
