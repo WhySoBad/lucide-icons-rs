@@ -27,7 +27,8 @@ jobs:
       - name: Get missing crate versions
         id: versions
         run: |
-          LATEST_CARGO_VERSION=$(cargo info lucide-icons -q | sed -n 's/^version: //p')
+          # LATEST_CARGO_VERSION=$(cargo info lucide-icons -q | sed -n 's/^version: //p')
+          LATEST_CARGO_VERSION=0.443.0
           echo "Latest crate version is $LATEST_CARGO_VERSION"
 
           LUCIDE_RELEASES=$(gh release list --repo lucide-icons/lucide -L 25 --json tagName)
