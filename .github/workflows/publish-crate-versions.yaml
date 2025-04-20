@@ -67,13 +67,14 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Build crate version ${{ matrix.version }} in docker container
-        uses: addnab/docker-run-action@v3
+        uses: frozen-tapestry/docker-run-action@v6
         with:
           image: ghcr.io/whysobad/lucide-icons:latest
-          run: lucide-icons -o /github/workspace/out -a "${{ github.repository_owner }}" -r https://github.com/${{ github.repository }} -w https://github.com/${{ github.repository }} ${{ matrix.version }}
+          options: -v ${{ github.workspace }}/out:/app/out
+          run: lucide-icons -o /app/out -a "${{ github.repository_owner }}" -r https://github.com/${{ github.repository }} -w https://github.com/${{ github.repository }} ${{ matrix.version }}
 
       - name: List directory
-        run: ls -al
+        run: ls -al ${{ github.workspace }}/out
 
       # - name: Publish new crate version
         # run: cargo publish --dry-run --manifest-path ${{ github.workspace }}/out/Cargo.toml
