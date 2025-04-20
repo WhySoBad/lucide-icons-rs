@@ -74,7 +74,7 @@ jobs:
         with:
           image: ghcr.io/whysobad/lucide-icons:latest
           options: -v ${{ github.workspace }}/out:/app/out
-          run: lucide-icons -o /github/workspace/out -a "${{ github.repository_owner }}" -r https://github.com/${{ github.repository }} -w https://github.com/${{ github.repository }} ${{ matrix.version }}
+          run: lucide-icons -o /app/out -a "${{ github.repository_owner }}" -r https://github.com/${{ github.repository }} -w https://github.com/${{ github.repository }} ${{ matrix.version }}
 
       - name: List directory
         run: ls -al ${{ github.workspace }}/out
