@@ -66,12 +66,14 @@ jobs:
       - name: Install rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Create out directory
+        run: mkdir ${{ github.workspace }}/out
+
       - name: Build crate version ${{ matrix.version }} in docker container
-        uses: frozen-tapestry/docker-run-action@v6
+        uses: addnab/docker-run-action@v3
         with:
           image: ghcr.io/whysobad/lucide-icons:latest
-          options: -v ${{ github.workspace }}/out:/app/out
-          run: lucide-icons -o /app/out -a "${{ github.repository_owner }}" -r https://github.com/${{ github.repository }} -w https://github.com/${{ github.repository }} ${{ matrix.version }}
+          run: lucide-icons -o /github/workspace/out -a "${{ github.repository_owner }}" -r https://github.com/${{ github.repository }} -w https://github.com/${{ github.repository }} ${{ matrix.version }}
 
       - name: List directory
         run: ls -al ${{ github.workspace }}/out
