@@ -24,20 +24,12 @@ jobs:
           # don't exit step when a command returns non-zero exit code
           set +e
 
-          LATEST_CARGO_VERSION=$(cargo info lucide-icons -q | sed -n 's/^version: //p')
-          echo "Latest crate version is $LATEST_CARGO_VERSION"
-
           LUCIDE_RELEASES=$(gh release list --repo lucide-icons/lucide -L 25 --json tagName)
-          echo "Fetched latest lucide releases: $LUCIDE_RELEASES"
+          echo "Fetched latest lucide releases"
 
           VERSIONS=""
 
           while IFS= read -r release_tag; do
-              if [[ "$release_tag" == "$LATEST_CARGO_VERSION" ]]; then
-                  echo "Found release matching latest crate version"
-                  break
-              fi
-
               cargo info "lucide-icons@$release_tag" -q > /dev/null 2>&1
 
               if [ $? -eq 0 ]; then
@@ -75,6 +67,9 @@ jobs:
           image: ghcr.io/whysobad/lucide-icons:latest
           options: -v ${{ github.workspace }}/out:/app/out
           run: lucide-icons -o /app/out -a "${{ github.repository_owner }}" -r https://github.com/${{ github.repository }} -w https://github.com/${{ github.repository }} ${{ matrix.version }}
+
+      - name: Show Cargo.toml
+        run: cat ${{ github.workspace }}/out/Cargo.toml
 
       - name: Publish new crate version
         run: cargo publish --dry-run --manifest-path ${{ github.workspace }}/out/Cargo.toml
