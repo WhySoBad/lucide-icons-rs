@@ -73,4 +73,4 @@ jobs:
           run: lucide-icons -o /github/workspace/out -a "${{ github.repository_owner }}" -r https://github.com/${{ github.repository }} -w https://github.com/${{ github.repository }} ${{ matrix.version }}
 
       - name: Publish new crate version
-        run: cargo publish --dry-run --manifest-path out/Cargo.toml
+        run: cargo publish --dry-run --manifest-path ${{ github.workspace }}/out/Cargo.toml
