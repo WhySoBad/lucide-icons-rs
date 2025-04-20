@@ -22,10 +22,12 @@ jobs:
         id: versions
         run: |
           LATEST_CARGO_VERSION=$(cargo info lucide-icons -q | sed -n 's/^version: //p')
-          LUCIDE_RELEASES=$(gh release list --repo lucide-icons/lucide -L 25 --json tagName)
-          VERSIONS=""
-
           echo "Latest crate version is $LATEST_CARGO_VERSION"
+
+          LUCIDE_RELEASES=$(gh release list --repo lucide-icons/lucide -L 25 --json tagName)
+          echo "Fetched latest lucide releases"
+
+          VERSIONS=""
 
           while IFS= read -r release_tag; do
               if [[ "$release_tag" == "$LATEST_CARGO_VERSION" ]]; then
