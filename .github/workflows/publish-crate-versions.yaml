@@ -18,12 +18,6 @@ jobs:
       - name: Install rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Test rust installation
-        run: cargo info lucide-icons
-
-      - name: Test jq
-        run: echo '["asdf", "test"]' | jq
-
       - name: Get missing crate versions
         id: versions
         run: |
@@ -76,8 +70,7 @@ jobs:
         uses: addnab/docker-run-action@v3
         with:
           image: ghcr.io/whysobad/lucide-icons:latest
-          options: -v ${{ github.workspace }}/out:/app/out
-          run: lucide-icons -a "${{ github.repository_owner }}" -r https://github.com/${{ github.repository }} -w https://github.com/${{ github.repository }} ${{ matrix.version }}
+          run: lucide-icons -o /github/workspace/out -a "${{ github.repository_owner }}" -r https://github.com/${{ github.repository }} -w https://github.com/${{ github.repository }} ${{ matrix.version }}
 
       - name: Publish new crate version
         run: cargo publish --dry-run --manifest-path out/Cargo.toml
