@@ -18,6 +18,9 @@ jobs:
       - name: Install rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Test rust installation
+        run: cargo info lucide-icons
+
       - name: Get missing crate versions
         id: versions
         run: |
