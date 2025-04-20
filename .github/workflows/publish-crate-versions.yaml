@@ -2,6 +2,9 @@ name: Publish Latest Lucide Versions
 
 on:
   workflow_dispatch:
+  schedule:
+    # run workflow every morning at 01:27 (UTC) o'clock
+    - cron: 27 1 * * *
 
 env:
   # token used to login to the crates.io registry
@@ -72,4 +75,4 @@ jobs:
         run: cat ${{ github.workspace }}/out/Cargo.toml
 
       - name: Publish new crate version
-        run: cargo publish --dry-run --manifest-path ${{ github.workspace }}/out/Cargo.toml
+        run: cargo publish --manifest-path ${{ github.workspace }}/out/Cargo.toml
