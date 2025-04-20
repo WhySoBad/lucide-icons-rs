@@ -27,6 +27,9 @@ jobs:
       - name: Get missing crate versions
         id: versions
         run: |
+          # don't exit step when a command returns non-zero exit code
+          set +e
+
           LATEST_CARGO_VERSION=$(cargo info lucide-icons -q | sed -n 's/^version: //p')
           echo "Latest crate version is $LATEST_CARGO_VERSION"
 
@@ -41,8 +44,7 @@ jobs:
                   break
               fi
 
-              # cargo info "lucide-icons@$release_tag" -q > /dev/null 2>&1
-              echo "test-for-success"
+              cargo info "lucide-icons@$release_tag" -q > /dev/null 2>&1
 
               if [ $? -eq 0 ]; then
                   echo "Found crate version for release $release_tag"
@@ -57,6 +59,7 @@ jobs:
   publish-crate-version:
     needs: [ versions ]
     runs-on: ubuntu-latest
+    if: ${{ needs.versions.outputs.versions != '' && toJson(fromJson(needs.versions.outputs.versions)) != '[]' }}
     strategy:
       matrix:
         version: ${{ fromJSON(needs.versions.outputs.versions) }}
