@@ -21,7 +21,8 @@ jobs:
       - name: Test rust installation
         run: cargo info lucide-icons
 
-      - run: "cargo info lucide-icons -q | sed -n 's/^version: //p'"
+      - name: Test jq
+        run: echo '["asdf", "test"]' | jq
 
       - name: Get missing crate versions
         id: versions
