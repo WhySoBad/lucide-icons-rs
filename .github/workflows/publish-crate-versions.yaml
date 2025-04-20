@@ -9,7 +9,7 @@ env:
 
 jobs:
   versions:
-    runs-on: ubuntu:latest
+    runs-on: ubuntu-latest
     outputs:
       versions: ${{ steps.versions.outputs.value }}
     steps:
@@ -44,10 +44,12 @@ jobs:
 
   publish-crate-version:
     needs: [ versions ]
-    runs-on: ubuntu:latest
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         version: ${{ fromJSON(needs.versions.outputs.versions) }}
+    permissions:
+      contents: read
     steps:
       - name: Checkout source
         uses: actions/checkout@v4

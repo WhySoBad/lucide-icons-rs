@@ -13,7 +13,7 @@ The `lucide-icons` cli supports the following arguments
 | `output`         | Directory where the library should be written to | `out`                                                |
 | `iced-version`   | Version of `iced` to use in the output library   | `0.13`                                               |
 | `name`           | Name of the output library                       | `lucide-icons`                                       |
-| `description`    | Description of the output library                | `rust definitions for lucide-icons`                  |
+| `description`    | Description of the output library                | `Rust definitions for lucide-icons`                  |
 | `edition`        | Rust edition of the output library               | `2024`                                               |
 | `license`        | License of the output library                    | `MIT`                                                |
 | `categories`     | Categories of the output library                 | `["gui"]`                                            |
