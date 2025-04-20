@@ -6,6 +6,9 @@ on:
       - '*'
     branches:
       - master
+    paths:
+      - src/*
+      - .github/workflows/build-docker.yaml
   workflow_dispatch:
 
 jobs:
