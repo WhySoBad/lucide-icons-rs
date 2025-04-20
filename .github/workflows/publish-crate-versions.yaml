@@ -25,7 +25,7 @@ jobs:
           echo "Latest crate version is $LATEST_CARGO_VERSION"
 
           LUCIDE_RELEASES=$(gh release list --repo lucide-icons/lucide -L 25 --json tagName)
-          echo "Fetched latest lucide releases"
+          echo "Fetched latest lucide releases: $LUCIDE_RELEASES"
 
           VERSIONS=""
 
