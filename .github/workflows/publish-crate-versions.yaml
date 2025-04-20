@@ -72,5 +72,8 @@ jobs:
           image: ghcr.io/whysobad/lucide-icons:latest
           run: lucide-icons -o /github/workspace/out -a "${{ github.repository_owner }}" -r https://github.com/${{ github.repository }} -w https://github.com/${{ github.repository }} ${{ matrix.version }}
 
-      - name: Publish new crate version
-        run: cargo publish --dry-run --manifest-path ${{ github.workspace }}/out/Cargo.toml
+      - name: List directory
+        run: ls -al
+
+      # - name: Publish new crate version
+        # run: cargo publish --dry-run --manifest-path ${{ github.workspace }}/out/Cargo.toml
