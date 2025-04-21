@@ -9,7 +9,7 @@ pub struct Cli {
     pub output: String,
 
     /// Version of the iced crate to use in the output library
-    #[arg(long, short, default_value_t = String::from("0.13"))]
+    #[arg(long, short, default_value_t = String::from("0.*"))]
     pub iced_version: String,
 
     /// Name of the output library
