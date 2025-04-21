@@ -25,7 +25,7 @@ pub struct Cli {
     pub edition: Edition,
 
     /// License of the output library
-    #[arg(long, short, default_value_t = String::from("MIT"))]
+    #[arg(long, short, default_value_t = String::from("MIT AND ISC"))]
     pub license: String,
 
     /// Categories of the output library

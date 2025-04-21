@@ -15,7 +15,7 @@ The `lucide-icons` cli supports the following arguments
 | `name`           | Name of the output library                       | `lucide-icons`                                       |
 | `description`    | Description of the output library                | `Rust definitions for lucide-icons`                  |
 | `edition`        | Rust edition of the output library               | `2024`                                               |
-| `license`        | License of the output library                    | `MIT`                                                |
+| `license`        | License of the output library                    | `MIT AND ISC`                                        |
 | `categories`     | Categories of the output library                 | `["gui"]`                                            |
 | `keywords`       | Keywords of the output library                   | `["lucide-icons", "lucide", "icon", "iced", "font"]` |
 | `homepage-url`   | Url to the output library homepage               | _none_                                               |
