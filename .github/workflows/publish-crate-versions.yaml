@@ -48,6 +48,7 @@ jobs:
   publish-crate-version:
     needs: [ versions ]
     runs-on: ubuntu-latest
+    continue-on-error: true
     if: ${{ needs.versions.outputs.versions != '' && toJson(fromJson(needs.versions.outputs.versions)) != '[]' }}
     strategy:
       matrix:
