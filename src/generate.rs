@@ -175,7 +175,7 @@ pub fn generate_icons_enum(icons: &BTreeMap<String, IconInfo>) -> anyhow::Result
         .collect::<Vec<_>>();
 
     let output = quote! {
-        #[derive(Debug)]
+        #[derive(Debug, Clone, Copy)]
         pub enum Icon {
             #(#variants),*
         }

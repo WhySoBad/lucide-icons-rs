@@ -45,7 +45,7 @@ pub struct Cli {
     pub repository_url: Option<String>,
 
     /// Path to the README of the output library
-    #[arg(long, short, default_value_t = String::from("README.md"))]
+    #[arg(long, short = 'p', default_value_t = String::from("README.md"))]
     pub readme_path: String,
 
     /// Authors of the output library
