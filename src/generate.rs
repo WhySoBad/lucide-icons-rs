@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use anyhow::Context;
 use quote::quote;
-use syn::LitChar;
+use syn::{LitChar, LitStr};
 
 use crate::{cli::Cli, info::IconInfo};
 
@@ -30,16 +30,13 @@ fn main() {{
 With the `iced` feature the library also provides the icons as iced widgets:
 
 ```rust
-use {lib_name}::lucide_font_bytes;
+use {lib_name}::LUCIDE_FONT_BYTES;
 use {lib_name}::iced::icon_anvil;
 
 fn setup_application() {{
-    // get font bytes for the bundled font
-    let bytes = lucide_font_bytes();
-
-    // add the font to iced
     let settings = iced::Settings {{
-        fonts: vec![bytes.into()],
+        // add bundled font to iced
+        fonts: vec![LUCIDE_FONT_BYTES.into()],
         ..Default::default()
     }};
 
@@ -48,7 +45,10 @@ fn setup_application() {{
 
 fn view() -> iced::Element<'_, Message, Theme, iced::Renderer> {{
     iced::widget::column![
-        icon_anvil()
+        // named widget function per icon
+        icon_anvil(),
+        // widget function per variant
+        Icon::Anvil.widget()
     ].into()
 }}
 
@@ -127,9 +127,7 @@ pub fn generate_library() -> anyhow::Result<String> {
         /// Always use this font when relying on the icons of this crate as it may be
         /// that the system installation of the font has a different version than the
         /// one used by this crate
-        pub fn lucide_font_bytes() -> &'static [u8] {
-            include_bytes!("../lucide.ttf")
-        }
+        pub const LUCIDE_FONT_BYTES: &'static [u8] = include_bytes!("../lucide.ttf");
     };
 
     let file_str =
@@ -197,6 +195,12 @@ pub fn generate_icons_enum(icons: &BTreeMap<String, IconInfo>) -> anyhow::Result
                     &_ => None
                 }
             }
+
+            #[cfg(feature = "iced")]
+            /// Get the icon as an iced text widget
+            pub fn widget<'a>(&self) -> iced::widget::Text<'a> {
+                iced::widget::text(self.unicode().to_string()).font(iced::Font::with_name("lucide"))
+            }
         }
 
         impl std::fmt::Display for Icon {
@@ -223,27 +227,24 @@ pub fn generate_iced_icons(icons: &BTreeMap<String, IconInfo>) -> anyhow::Result
                 &(String::from("icon_").to_owned() + key.replace('-', "_").as_str()),
                 proc_macro2::Span::call_site(),
             );
-            let unicode =
-                syn::Lit::Char(LitChar::new(icon.unicode(), proc_macro2::Span::call_site()));
+
+            let unicode_str = syn::Lit::Str(LitStr::new(
+                icon.unicode().to_string().as_str(),
+                proc_macro2::Span::call_site(),
+            ));
 
             let doc_msg = format!("[{}](https://lucide.dev/icons/{}) icon", key, key);
 
             quote! {
                 #[doc = #doc_msg]
                 pub fn #name<'a>() -> iced::widget::Text<'a> {
-                    iced::widget::text(#unicode.to_string()).font(iced::Font::with_name("lucide"))
+                    iced::widget::text(#unicode_str).font(iced::Font::with_name("lucide"))
                 }
             }
         })
         .collect::<Vec<_>>();
 
     let output = quote! {
-        // use iced::widget::text;
-
-        // fn base_icon<'a>(icon: char) -> iced::widget::Text<'a> {
-        //     text(icon.to_string()).font(iced::Font::with_name("lucide"))
-        // }
-
         #(#functions)*
     };
 
