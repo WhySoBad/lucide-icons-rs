@@ -23,7 +23,7 @@ use {lib_name}::Icon;
 fn main() {{
     let icon = Icon::Anvil;
     assert_eq!(format!("{{icon}}"), String::from("anvil"));
-    println!("unicode = {{}}", icon.unicode());
+    println!("unicode = {{}}", char::from(icon));
 }}
 ```
 
@@ -48,7 +48,7 @@ fn view() -> iced::Element<'_, Message, Theme, iced::Renderer> {{
         // named widget function per icon
         icon_anvil(),
         // widget function per variant
-        Icon::Anvil.widget()
+        Icon::Anvil.into()
     ].into()
 }}
 
@@ -127,7 +127,7 @@ pub fn generate_library() -> anyhow::Result<String> {
         /// Always use this font when relying on the icons of this crate as it may be
         /// that the system installation of the font has a different version than the
         /// one used by this crate
-        pub const LUCIDE_FONT_BYTES: &'static [u8] = include_bytes!("../lucide.ttf");
+        pub const LUCIDE_FONT_BYTES: &[u8] = include_bytes!("../lucide.ttf");
     };
 
     let file_str =
@@ -173,33 +173,81 @@ pub fn generate_icons_enum(icons: &BTreeMap<String, IconInfo>) -> anyhow::Result
         .collect::<Vec<_>>();
 
     let output = quote! {
+
+        /// Representation of a lucide icon
+        ///
+        /// # Usage
+        /// ```rust
+        /// let icon = Icon::Anvil;
+        ///
+        /// // get icon unicode character
+        /// let unicode = char::from(icon);
+        /// // or by using `unicode` method explicitly
+        /// let unicode = Icon::Anvil.unicode();
+        ///
+        /// // get icon by name
+        /// Icon::try_from("anvil").expect("should be valid icon variant");
+        ///
+        /// // get icon by unicode
+        /// Icon::try_from('\u{e1ad}').expect("should be valid icon variant");
+        ///
+        /// // turn icon into iced text widget
+        /// iced::widget::Text::from(Icon::Anvil);
+        /// ```
+        /// **Important**: All iced-related functionalities require the `iced` feature to be enabled
+        ///                which is disabled by default
         #[derive(Debug, Clone, Copy)]
         pub enum Icon {
             #(#variants),*
         }
 
         impl Icon {
-            /// Unicode character of an icon
-            pub fn unicode(&self) -> char {
-                match self {
-                    #(Self::#variant_names => #unicodes),*
-                }
+            /// Unicode code point of the icon variant
+            pub fn unicode(self) -> char {
+                self.into()
             }
 
-            /// Get an icon from it's name
-            ///
-            /// The names need to be all-lowercase-dashed (e.g. `app-window`)
-            pub fn from_name(icon_name: &str) -> Option<Self> {
-                match icon_name {
-                    #(#names => Some(Icon::#variant_names)),*,
-                    &_ => None
-                }
-            }
-
+            /// Iced icon widget of the icon variant
             #[cfg(feature = "iced")]
-            /// Get the icon as an iced text widget
-            pub fn widget<'a>(&self) -> iced::widget::Text<'a> {
-                iced::widget::text(self.unicode().to_string()).font(iced::Font::with_name("lucide"))
+            pub fn widget<'a>(self) -> iced::widget::Text<'a> {
+                self.into()
+            }
+        }
+
+        impl TryFrom<&str> for Icon {
+            type Error = String;
+
+            fn try_from(icon_str: &str) -> Result<Icon, Self::Error> {
+                match icon_str {
+                    #(#names => Ok(Icon::#variant_names)),*,
+                    &_ => Err(format!("icon '{icon_str}' is not a valid icon variant"))
+                }
+            }
+        }
+
+        impl TryFrom<char> for Icon {
+            type Error = String;
+
+            fn try_from(unicode: char) -> Result<Icon, Self::Error> {
+                match unicode {
+                    #(#unicodes => Icon::#variant_names),*,
+                    _ => Err(format!("unicode '{unicode}' is not a valid icon unicode"))
+                }
+            }
+        }
+
+        impl From<Icon> for char {
+            fn from(icon: Icon) -> char {
+                match icon {
+                    #(Icon::#variant_names => #unicodes),*
+                }
+            }
+        }
+
+        #[cfg(feature = "iced")]
+        impl<'a> From<Icon> for iced::widget::Text<'a> {
+            fn from(icon: Icon) -> iced::widget::Text<'a> {
+                iced::widget::text(char::from(icon).to_string()).font(iced::Font::with_name("lucide"))
             }
         }
 
