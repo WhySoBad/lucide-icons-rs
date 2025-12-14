@@ -27,7 +27,9 @@ fn main() {{
 }}
 ```
 
-With the `iced` feature the library also provides the icons as iced widgets:
+## Iced
+
+With the `iced` feature, the library also provides the icons as iced widgets:
 
 ```rust
 use {lib_name}::LUCIDE_FONT_BYTES;
@@ -51,7 +53,25 @@ fn view() -> iced::Element<'_, Message, Theme, iced::Renderer> {{
         Icon::Anvil.into()
     ].into()
 }}
+```
 
+## Serde
+
+With the `serde` feature, the library also provides serialization/deserialization for the `Icon` enum by an icon name.
+
+```rust
+use {lib_name}::Icon;
+
+#[derive(serde::Serialize)]
+struct IconWrapper {{
+    icon: Icon
+}}
+
+fn to_json() {{
+    let icon = IconWrapper {{ icon: Icon::ArrowUpNarrowWide }};
+    let str = serde_json::to_string(&icon).expect("should serialize");
+    assert_eq!(str, "{{\"icon\":\"arrow-up-narrow-wide\"}}");
+}}
 ```
 
 For more details have a look at the [generator repository page](https://github.com/WhySoBad/lucide-icons-rs/)
@@ -105,9 +125,11 @@ pub fn generate_cargo_toml(cli: &Cli) -> String {
 [features]
 default = []
 iced = ['dep:iced']
+serde = ['dep:serde']
 
 [dependencies]
 iced = {{ version = '{}', optional = true, features = ["advanced"], default-features = false }}
+serde = {{ version = '1.0', optional = true, features = ["derive"] }}
 "##,
         cli.iced_version
     )
@@ -115,12 +137,15 @@ iced = {{ version = '{}', optional = true, features = ["advanced"], default-feat
     .to_string()
 }
 
-pub fn generate_library() -> anyhow::Result<String> {
+pub fn generate_library(name: &str, version: &str) -> anyhow::Result<String> {
+    let lib_name = name.replace('-', "_");
     let output = quote! {
+        #![doc = concat!("Auto-generated rust icon definitions for [lucide icons](https://lucide.dev) [version ", #version, "](https://github.com/lucide-icons/lucide/releases/tag/", #version, ")")]
+        //!
         //! This library provides an [`Icon`] enum which contains all lucide icon variants:
         //!
         //! ```rust
-        //! use lucide_icons::Icon;
+        #![doc = concat!("use ", #lib_name, "::Icon;")]
         //!
         //! fn main() {
         //!     let icon = Icon::Anvil;
@@ -137,8 +162,7 @@ pub fn generate_library() -> anyhow::Result<String> {
         //! and for every lucide icon variant there will be a named function which returns an icon widget.
         //!
         //! ```rust
-        //! use lucide_icons::LUCIDE_FONT_BYTES;
-        //! use lucide_icons::iced::icon_anvil;
+        #![doc = concat!("use ", #lib_name, "::{LUCIDE_FONT_BYTES, iced::icon_anvil};")]
         //!
         //! fn setup_application() {
         //!     let settings = iced::Settings {
@@ -158,7 +182,24 @@ pub fn generate_library() -> anyhow::Result<String> {
         //!         Icon::Anvil.into()
         //!     ].into()
         //! }
+        //! ```
         //!
+        //! ## Serde
+        //! With the `serde` feature, the library also provides serialization/deserialization for the [`Icon`] enum by an icon name.
+        //!
+        //! ```rust
+        #![doc = concat!("use ", #lib_name, "::Icon;")]
+        //!
+        //! #[derive(serde::Serialize)]
+        //! struct IconWrapper {
+        //!     icon: Icon
+        //! }
+        //!
+        //! fn to_json() {
+        //!     let icon = IconWrapper { icon: Icon::ArrowUpNarrowWide };
+        //!     let str = serde_json::to_string(&icon).expect("should serialize");
+        //!     assert_eq!(str, "{\"icon\":\"arrow-up-narrow-wide\"}");
+        //! }
         //! ```
         //!
 
@@ -242,6 +283,8 @@ pub fn generate_icons_enum(icons: &BTreeMap<String, IconInfo>) -> anyhow::Result
         /// **Important**: All iced-related functionalities require the `iced` feature to be enabled
         ///                which is disabled by default
         #[derive(Debug, Clone, Copy)]
+        #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+        #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
         pub enum Icon {
             #(#variants),*
         }
@@ -279,7 +322,7 @@ pub fn generate_icons_enum(icons: &BTreeMap<String, IconInfo>) -> anyhow::Result
 
             fn try_from(unicode: char) -> Result<Icon, Self::Error> {
                 match unicode {
-                    #(#unicodes => Icon::#variant_names),*,
+                    #(#unicodes => Ok(Icon::#variant_names)),*,
                     _ => Err(format!("unicode '{unicode}' is not a valid icon unicode"))
                 }
             }
