@@ -36,7 +36,7 @@ async fn main() {
     logger.next("Generating iced icons code");
     let iced_rs = generate::generate_iced_icons(&icons).unwrap_or_exit(&mut logger);
     logger.next("Generating library code");
-    let lib_rs = generate::generate_library().unwrap_or_exit(&mut logger);
+    let lib_rs = generate::generate_library(&cli.name, &cli.tag).unwrap_or_exit(&mut logger);
 
     let out_dir = Path::new(&cli.output);
     let out_src_dir = out_dir.join("src");

@@ -60,10 +60,7 @@ println!("unicode = {}", icon.unicode());
 Additionally, the library also provides an accessor for the bundled lucide icons font:
 
 ```rust
-use lucide_icons::lucide_font_bytes;
-
-// get font bytes for the bundled font
-let font_bytes = lucide_font_bytes();
+use lucide_icons::LUCIDE_FONT_BYTES;
 ```
 
 The library also has the optional `iced` feature which also provides lucide icons as pre-defined iced widgets:
@@ -72,7 +69,7 @@ The library also has the optional `iced` feature which also provides lucide icon
 use lucide_icons::iced::icon_anvil;
 
 // add the font to iced
-let settings = iced::Settings { fonts: vec![font_bytes.into()], ..Default::default() };
+let settings = iced::Settings { fonts: vec![LUCIDE_FONT_BYTES.into()], ..Default::default() };
 
 fn view() -> iced::Element<'_, Message, Theme, iced::Renderer> {
     iced::widget::column![
@@ -80,6 +77,8 @@ fn view() -> iced::Element<'_, Message, Theme, iced::Renderer> {
     ].into()
 }
 ```
+
+Additionally, the library also has an optional `serde` feature which provides serialization and deserialization for icon variants based off their name.
 
 ## Official crate
 
