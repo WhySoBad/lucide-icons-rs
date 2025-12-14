@@ -131,6 +131,7 @@ fn extract_archive_files(dir: TempDir) -> anyhow::Result<(BTreeMap<String, IconI
     let font_file = archive
         .by_name("lucide-font/lucide.ttf")
         .context("Unable to find font file in archive")?;
+    #[allow(clippy::unbuffered_bytes)]
     let font_bytes = font_file
         .bytes()
         .collect::<std::io::Result<Vec<_>>>()
