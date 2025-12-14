@@ -117,6 +117,51 @@ iced = {{ version = '{}', optional = true, features = ["advanced"], default-feat
 
 pub fn generate_library() -> anyhow::Result<String> {
     let output = quote! {
+        //! This library provides an [`Icon`] enum which contains all lucide icon variants:
+        //!
+        //! ```rust
+        //! use lucide_icons::Icon;
+        //!
+        //! fn main() {
+        //!     let icon = Icon::Anvil;
+        //!     assert_eq!(format!("{icon}"), String::from("anvil"));
+        //!     println!("unicode = {}", char::from(icon));
+        //! }
+        //! ```
+        //!
+        //! Additionally, the underlying lucide ttf bytes are available through the [`LUCIDE_FONT_BYTES`] constant.
+        //!
+        //! ## Iced
+        //!
+        //! With the `iced` feature, [iced](https://iced.rs) compatibility can be enabled. This means, [`Icon`] variants can directly be converted to iced widgets
+        //! and for every lucide icon variant there will be a named function which returns an icon widget.
+        //!
+        //! ```rust
+        //! use lucide_icons::LUCIDE_FONT_BYTES;
+        //! use lucide_icons::iced::icon_anvil;
+        //!
+        //! fn setup_application() {
+        //!     let settings = iced::Settings {
+        //!         // add bundled font to iced
+        //!         fonts: vec![LUCIDE_FONT_BYTES.into()],
+        //!         ..Default::default()
+        //!     };
+        //!
+        //!     // run app with settings...
+        //! }
+        //!
+        //! fn view() -> iced::Element<'_, Message, Theme, iced::Renderer> {
+        //!     iced::widget::column![
+        //!         // named widget function per icon
+        //!         icon_anvil(),
+        //!         // widget function per variant
+        //!         Icon::Anvil.into()
+        //!     ].into()
+        //! }
+        //!
+        //! ```
+        //!
+
         #[cfg(feature = "iced")]
         pub mod iced;
         mod icon;
@@ -203,11 +248,15 @@ pub fn generate_icons_enum(icons: &BTreeMap<String, IconInfo>) -> anyhow::Result
 
         impl Icon {
             /// Unicode code point of the icon variant
+            ///
+            /// **Note**: This is the same as `char::from(icon)`
             pub fn unicode(self) -> char {
                 self.into()
             }
 
             /// Iced icon widget of the icon variant
+            ///
+            /// **Note**: This is the same as `iced::widget::Text::from(icon)`
             #[cfg(feature = "iced")]
             pub fn widget<'a>(self) -> iced::widget::Text<'a> {
                 self.into()
