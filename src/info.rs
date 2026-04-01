@@ -4,10 +4,10 @@ use serde::Deserialize;
 #[serde(rename_all = "camelCase")]
 #[allow(unused)]
 pub struct IconInfo {
-    encoded_code: String,
-    prefix: String,
-    class_name: String,
-    unicode: String,
+    pub(crate) encoded_code: String,
+    pub(crate) prefix: String,
+    pub(crate) class_name: String,
+    pub(crate) unicode: String,
 }
 
 impl IconInfo {

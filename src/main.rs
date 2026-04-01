@@ -147,5 +147,17 @@ fn extract_archive_files(dir: TempDir) -> anyhow::Result<(BTreeMap<String, IconI
     let icons: BTreeMap<String, IconInfo> =
         serde_json::from_str(&icons_str).context("Unable to deserialize font info file")?;
 
-    Ok((icons, font_bytes))
+    // Since lucide has multiple icons with the same code points, we only retain the first icon
+    // for each code point because otherwise our abstractions break.
+    let mut unique_icons = BTreeMap::<String, IconInfo>::new();
+    icons.into_iter().for_each(|(key, icon)| {
+        let duplicate_code = unique_icons.iter().any(|(other_key, other_icon)| {
+            other_icon.encoded_code == icon.encoded_code && other_key != &key
+        });
+        if !duplicate_code {
+            unique_icons.insert(key, icon);
+        }
+    });
+
+    Ok((unique_icons, font_bytes))
 }
