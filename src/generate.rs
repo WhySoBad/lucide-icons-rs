@@ -301,7 +301,10 @@ pub fn generate_icons_enum(icons: &BTreeMap<String, IconInfo>) -> anyhow::Result
             ///
             /// **Note**: This is the same as `iced::widget::Text::from(icon)`
             #[cfg(feature = "iced")]
-            pub fn widget<'a>(self) -> iced::widget::Text<'a> {
+            pub fn widget<'a, Theme>(self) -> iced::widget::Text<'a, Theme>
+            where
+                Theme: iced::widget::text::Catalog + 'a
+            {
                 self.into()
             }
         }
@@ -337,8 +340,11 @@ pub fn generate_icons_enum(icons: &BTreeMap<String, IconInfo>) -> anyhow::Result
         }
 
         #[cfg(feature = "iced")]
-        impl<'a> From<Icon> for iced::widget::Text<'a> {
-            fn from(icon: Icon) -> iced::widget::Text<'a> {
+        impl<'a, Theme> From<Icon> for iced::widget::Text<'a, Theme>
+        where
+            Theme: iced::widget::text::Catalog + 'a
+        {
+            fn from(icon: Icon) -> iced::widget::Text<'a, Theme> {
                 iced::widget::text(char::from(icon).to_string()).font(iced::Font::with_name("lucide"))
             }
         }
@@ -377,7 +383,10 @@ pub fn generate_iced_icons(icons: &BTreeMap<String, IconInfo>) -> anyhow::Result
 
             quote! {
                 #[doc = #doc_msg]
-                pub fn #name<'a>() -> iced::widget::Text<'a> {
+                pub fn #name<'a, Theme>() -> iced::widget::Text<'a, Theme>
+                where
+                    Theme: iced::widget::text::Catalog + 'a
+                {
                     iced::widget::text(#unicode_str).font(iced::Font::with_name("lucide"))
                 }
             }
