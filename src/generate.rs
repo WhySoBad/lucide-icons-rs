@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use anyhow::Context;
 use quote::quote;
@@ -222,29 +222,41 @@ pub fn generate_library(name: &str, version: &str) -> anyhow::Result<String> {
 }
 
 pub fn generate_icons_enum(icons: &BTreeMap<String, IconInfo>) -> anyhow::Result<String> {
-    let (names, variant_names, unicodes) = icons
+    let (names, variant_names, unicodes, unique_unicode_variants) = icons
         .iter()
-        .map(|(key, icon)| {
-            let name = syn::Ident::new(
-                &key.split('-')
-                    .map(|part| {
-                        let mut chars = part.chars();
-                        match chars.next() {
-                            Some(first) => {
-                                first.to_uppercase().collect::<String>() + chars.as_str()
-                            }
-                            None => String::new(),
-                        }
-                    })
-                    .collect::<String>(),
-                proc_macro2::Span::call_site(),
-            );
+        // Scan is used to ensure that we only have unique `name`s.
+        .scan(HashSet::new(), |seen, (key, icon)| {
+            let name = key
+                .split('-')
+                .map(|part| {
+                    let mut chars = part.chars();
+                    match chars.next() {
+                        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+                        None => String::new(),
+                    }
+                })
+                .collect::<String>();
+
+            if seen.insert(name.clone()) {
+                Some(Some((key, name, icon)))
+            } else {
+                Some(None)
+            }
+        })
+        .flatten()
+        .map(|(key, name, icon)| {
+            let ident = syn::Ident::new(&name, proc_macro2::Span::call_site());
             let unicode =
                 syn::Lit::Char(LitChar::new(icon.unicode(), proc_macro2::Span::call_site()));
 
-            (key.clone(), name, unicode)
+            (
+                key.clone(),
+                ident.clone(),
+                unicode.clone(),
+                (icon.unicode(), (unicode, ident)),
+            )
         })
-        .collect::<(Vec<_>, Vec<_>, Vec<_>)>();
+        .collect::<(Vec<_>, Vec<_>, Vec<_>, BTreeMap<_, _>)>();
 
     let variants = names
         .iter()
@@ -257,6 +269,10 @@ pub fn generate_icons_enum(icons: &BTreeMap<String, IconInfo>) -> anyhow::Result
             }
         })
         .collect::<Vec<_>>();
+
+    let (unique_unicodes, unicode_variant_names) = unique_unicode_variants
+        .into_values()
+        .collect::<(Vec<_>, Vec<_>)>();
 
     let output = quote! {
 
@@ -325,7 +341,7 @@ pub fn generate_icons_enum(icons: &BTreeMap<String, IconInfo>) -> anyhow::Result
 
             fn try_from(unicode: char) -> Result<Icon, Self::Error> {
                 match unicode {
-                    #(#unicodes => Ok(Icon::#variant_names)),*,
+                    #(#unique_unicodes => Ok(Icon::#unicode_variant_names)),*,
                     _ => Err(format!("unicode '{unicode}' is not a valid icon unicode"))
                 }
             }
