@@ -18,4 +18,4 @@ spinoff = { version = "0.8.0", default-features = false }
 syn = "2.0.100"
 tempfile = "3.19.1"
 tokio = { version = "1.44.2", features = ["rt-multi-thread", "macros"] }
-zip = "2.6.1"
+zip = "8.6.0"
